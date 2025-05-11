@@ -1,0 +1,12 @@
+version: "3.9"
+
+services:
+  app:
+    build: .
+    container_name: wiresync-bot
+    restart: unless-stopped
+    env_file:
+      - .env
+    volumes:
+      - ./app/logs:/app/app/logs
+      - ./db.sqlite3:/app/db.sqlite3  
