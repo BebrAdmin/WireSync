@@ -8,6 +8,11 @@ from .server_manager import (
 from .server_manager.server_register import router as server_register_router
 from .server_manager.delete_server import router as delete_server_router
 from .peer_manager import router as peer_manager_router
+from .invite import (
+    invite_manager_router,
+    create_invite_router,
+    delete_invite_router,
+)
 from .cleanup import cleanup_router
 
 __all__ = [
@@ -19,5 +24,8 @@ __all__ = [
     "server_register_router",
     "delete_server_router",  
     "peer_manager_router",
+    "invite_manager_router",
+    "create_invite_router",
+    "delete_invite_router",
     "cleanup_router",
 ]

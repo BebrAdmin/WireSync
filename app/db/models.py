@@ -1,4 +1,4 @@
-from sqlalchemy import Column, Integer, String, DateTime, func, Boolean, ForeignKey
+from sqlalchemy import Column, Integer, String, DateTime, func, Boolean, ForeignKey, JSON
 from sqlalchemy.orm import relationship
 from .base import Base
 
@@ -40,3 +40,20 @@ class ServerAPIData(Base):
     api_password = Column(String(64), nullable=False)  
 
     server = relationship("Server", back_populates="api_data")
+    
+class UserServerAccess(Base):
+    __tablename__ = "user_server_access"
+
+    id = Column(Integer, primary_key=True, index=True)
+    user_id = Column(Integer, ForeignKey("users.id"), nullable=False)
+    server_id = Column(Integer, ForeignKey("servers.id"), nullable=False)
+    
+class Invite(Base):
+    __tablename__ = "invites"
+
+    id = Column(Integer, primary_key=True, index=True)
+    code = Column(String(64), unique=True, nullable=False)
+    server_ids = Column(JSON, nullable=False) 
+    created_at = Column(DateTime(timezone=True), server_default=func.now(), nullable=False)
+    used_by = Column(Integer, ForeignKey("users.id"), nullable=True)
+    is_active = Column(Boolean, default=True, nullable=False)

@@ -1,4 +1,4 @@
-from .models import User, Server, ServerAPIData
+from .models import User, Server, ServerAPIData, UserServerAccess, Invite
 from .session import AsyncSessionLocal
 from sqlalchemy import select, update, delete
 
@@ -122,3 +122,99 @@ async def get_admin_api_data_for_server(server_id: int):
         )
         result = await session.execute(stmt)
         return result.scalar_one_or_none()
+    
+# --- UserServerAccess CRUD ---
+
+async def add_user_server_access(user_id: int, server_id: int):
+    async with AsyncSessionLocal() as session:
+        access = UserServerAccess(user_id=user_id, server_id=server_id)
+        session.add(access)
+        await session.commit()
+        await session.refresh(access)
+        return access
+
+async def get_user_server_access(user_id: int, server_id: int):
+    async with AsyncSessionLocal() as session:
+        result = await session.execute(
+            select(UserServerAccess).where(
+                UserServerAccess.user_id == user_id,
+                UserServerAccess.server_id == server_id
+            )
+        )
+        return result.scalar_one_or_none()
+
+async def get_servers_for_user(user_id: int):
+    async with AsyncSessionLocal() as session:
+        result = await session.execute(
+            select(UserServerAccess.server_id).where(UserServerAccess.user_id == user_id)
+        )
+        return [row[0] for row in result.all()]
+
+async def get_users_for_server(server_id: int):
+    async with AsyncSessionLocal() as session:
+        result = await session.execute(
+            select(UserServerAccess.user_id).where(UserServerAccess.server_id == server_id)
+        )
+        return [row[0] for row in result.all()]
+
+async def remove_user_server_access(user_id: int, server_id: int):
+    async with AsyncSessionLocal() as session:
+        await session.execute(
+            delete(UserServerAccess).where(
+                UserServerAccess.user_id == user_id,
+                UserServerAccess.server_id == server_id
+            )
+        )
+        await session.commit()
+
+# --- Invite CRUD ---
+
+async def create_invite(code: str, server_ids: list):
+    async with AsyncSessionLocal() as session:
+        invite = Invite(
+            code=code,
+            server_ids=server_ids
+        )
+        session.add(invite)
+        await session.commit()
+        await session.refresh(invite)
+        return invite
+
+async def get_invite_by_code(code: str):
+    async with AsyncSessionLocal() as session:
+        result = await session.execute(
+            select(Invite).where(Invite.code == code)
+        )
+        return result.scalar_one_or_none()
+
+async def set_invite_used(invite_id: int, user_id: int):
+    async with AsyncSessionLocal() as session:
+        await session.execute(
+            update(Invite)
+            .where(Invite.id == invite_id)
+            .values(used_by=user_id, is_active=False)
+        )
+        await session.commit()
+
+async def deactivate_invite(invite_id: int):
+    async with AsyncSessionLocal() as session:
+        await session.execute(
+            update(Invite)
+            .where(Invite.id == invite_id)
+            .values(is_active=False)
+        )
+        await session.commit()
+
+async def delete_invite(invite_id: int):
+    async with AsyncSessionLocal() as session:
+        await session.execute(
+            delete(Invite).where(Invite.id == invite_id)
+        )
+        await session.commit()
+
+async def get_active_invites():
+    async with AsyncSessionLocal() as session:
+        result = await session.execute(
+            select(Invite).where(Invite.is_active == True)
+        )
+        return result.scalars().all()

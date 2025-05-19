@@ -14,5 +14,10 @@ def main_menu_keyboard(is_admin: bool = False) -> InlineKeyboardMarkup:
                 callback_data="server_manager"
             )
         )
-    return builder.as_markup()
+        builder.row(
+            InlineKeyboardButton(
+                text="🔑 Invite Manager",
+                callback_data="invite_manager_menu"
+            )
+        )
     return builder.as_markup()
