@@ -11,9 +11,9 @@ router = Router()
 async def show_settings_server_menu(callback: CallbackQuery, session):
     servers = await get_all_servers()
     if servers:
-        text = "Выберите сервер для настройки:"
+        text = "Select a server to configure:"
     else:
-        text = "Нет доступных серверов для настройки."
+        text = "No available servers for configuration."
     await callback.message.edit_text(
         text,
         reply_markup=select_server_for_settings_keyboard(servers)
@@ -24,7 +24,7 @@ async def show_server_settings_menu(callback: CallbackQuery, session):
     server_id = int(callback.data.replace("settings_server_", ""))
     server = await get_server_by_id(server_id)
     if not server:
-        await callback.answer("Сервер не найден.", show_alert=True)
+        await callback.answer("Server not found.", show_alert=True)
         return
 
     api_data = await get_server_api_data_by_server_id_and_tg_id(server_id, callback.from_user.id)
@@ -38,19 +38,23 @@ async def show_server_settings_menu(callback: CallbackQuery, session):
                 api_data.api_password
             )
             if interfaces:
-                adapters_text = "<b>Адаптеры:</b>\n"
+                adapters_text = "<b>Adapters:</b>\n"
                 for iface in interfaces:
-                    name = iface.get("DisplayName") or iface.get("Identifier") or "—"
-                    adapters_text += f"• <b>{name}</b>\n"
+                    name = iface.get("DisplayName") or "—"
+                    total_peers = iface.get("TotalPeers")
+                    peers_str = f"<b>{total_peers}</b> 👥" if total_peers is not None else "peers unknown"
+                    adapters_text += f"🔹 <b>{name}</b> | {peers_str}\n"
             else:
-                adapters_text = "<b>Адаптеры:</b> Нет адаптеров\n"
+                adapters_text = "<b>Adapters:</b> No adapters found\n"
         except Exception as e:
-            adapters_text = f"<b>Ошибка получения адаптеров:</b> {e}\n"
+            await callback.answer("Failed to load adapters.", show_alert=True)
+            adapters_text = "<b>Adapters:</b> —\n"
     else:
-        adapters_text = "<b>Нет доступа к API для этого сервера.</b>\n"
+        await callback.answer("No API access for this server.", show_alert=True)
+        adapters_text = "<b>No API access for this server.</b>\n"
 
     text = (
-        f"<b>Меню настроек для сервера:</b> <b>{server.name}</b>\n\n"
+        f"<b>Server settings menu:</b> <b>{server.name}</b>\n\n"
         f"{adapters_text}"
     )
     await callback.message.edit_text(

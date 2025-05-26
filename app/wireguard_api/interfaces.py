@@ -60,6 +60,39 @@ async def get_interface_by_id(
         logger.error(f"Exception during GET {url}: {e}")
         raise
 
+async def update_interface_by_id(
+    session: aiohttp.ClientSession,
+    api_url: str, api_user: str, api_pass: str, interface_id: str, interface_data: dict
+) -> dict:
+    """
+    Update a WireGuard interface by its identifier.
+    """
+    url = api_url.rstrip("/") + f"/interface/by-id/{interface_id}"
+    logger.info(f"PUT {url} (user={api_user})")
+    try:
+        async with session.put(
+            url,
+            json=interface_data,
+            auth=aiohttp.BasicAuth(api_user, api_pass),
+            timeout=10,
+            headers={
+                "accept": "application/json",
+                "content-type": "application/json"
+            },
+        ) as resp:
+            if resp.status == 200:
+                data = await resp.json()
+                logger.info(f"Updated interface {interface_id} at {url}")
+                return data
+            else:
+                text = await resp.text()
+                logger.error(f"API error {resp.status} for {url}: {text}")
+                raise WireGuardAPIError(f"API error {resp.status}: {text}")
+    except Exception as e:
+        logger.error(f"Exception during PUT {url}: {e}")
+        raise
+
+
 async def delete_interface_by_id(
     session: aiohttp.ClientSession,
     api_url: str, api_user: str, api_pass: str, interface_id: str
@@ -95,7 +128,7 @@ async def create_interface(
     Create a new WireGuard interface.
     """
     url = api_url.rstrip("/") + "/interface/new"
-    logger.info(f"POST {url} (user={api_user}) data={interface_data}")
+    logger.info(f"POST {url} (user={api_user})")
     try:
         async with session.post(
             url,

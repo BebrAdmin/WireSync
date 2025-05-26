@@ -1,6 +1,7 @@
 from .interfaces import (
     get_all_interfaces,
     get_interface_by_id,
+    update_interface_by_id,
     create_interface,
     delete_interface_by_id,
     prepare_interface,
@@ -32,6 +33,7 @@ from .exceptions import WireGuardAPIError
 __all__ = [
     "get_all_interfaces",
     "get_interface_by_id",
+    "update_interface_by_id",
     "create_interface",
     "delete_interface_by_id",
     "prepare_interface",

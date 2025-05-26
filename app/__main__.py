@@ -11,13 +11,15 @@ from app.bot.routers import (
     start_router,
     server_manager_router,
     server_settings_router,      
-    adapter_create_router,       
+    adapter_create_router,
+    adapter_delete_router,
+    adapter_update_router,       
     server_register_router,
     delete_server_router, 
     peer_manager_router,
     invite_manager_router,          
     create_invite_router,           
-    delete_invite_router,           
+    delete_invite_router,        
     cleanup_router, 
 )
 
@@ -26,6 +28,7 @@ from app.bot.middleware.message_cleaner import MessageCleanerMiddleware
 from app.bot import utils
 from app.db.init_db import init_db
 from app.bot.tasks.server_health import periodic_server_check
+from app.bot.tasks.user_sync import periodic_user_sync
 
 config = load_config()
 #setup_logging(config.LOGGING)  
@@ -44,6 +47,7 @@ async def main():
     await bot.set_my_commands(utils.get_bot_commands())
 
     asyncio.create_task(periodic_server_check(session, interval=60))
+    asyncio.create_task(periodic_user_sync(session, interval=60))
 
     dp.message.middleware(SessionMiddleware(session))
     dp.callback_query.middleware(SessionMiddleware(session))
@@ -54,7 +58,9 @@ async def main():
         start_router,
         server_manager_router,
         server_settings_router,   
-        adapter_create_router,    
+        adapter_create_router,
+        adapter_delete_router,
+        adapter_update_router,  
         server_register_router,
         delete_server_router,
         peer_manager_router,

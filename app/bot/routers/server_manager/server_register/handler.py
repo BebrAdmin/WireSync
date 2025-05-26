@@ -7,7 +7,7 @@ from .fsm import ServerRegisterState
 from .keyboard import cancel_keyboard, confirm_keyboard
 from app.db import (
     create_server, get_server_by_name, get_server_by_api_url,
-    create_server_api_data
+    create_server_api_data, get_user_by_tg_id
 )
 from app.bot.routers.server_manager.handler import open_server_manager
 from app.bot.routers.server_manager.keyboard import server_manager_keyboard
@@ -218,13 +218,16 @@ async def sync_server(callback: CallbackQuery, state: FSMContext, bot, session, 
         "api_url": data["api_url"],
         "status": "active"
     })
+    # Получаем user_id администратора (создателя сервера)
+    admin_user = await get_user_by_tg_id(callback.from_user.id)
     await create_server_api_data({
         "server_id": server.id,
+        "user_id": admin_user.id,  # <-- обязательно!
         "api_login": data["api_login"],
         "api_password": data["api_password"],
         "tg_id": callback.from_user.id
     })
-    logger.info(f"Server '{server.name}' ({server.api_url}) was registered by user {callback.from_user.id}")
+    logger.info(f"Server '{server.name}' was registered by user {callback.from_user.id}")
     await state.clear()
     await callback.answer("✅ Сервер синхронизирован!")
     await open_server_manager(callback, session)

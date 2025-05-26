@@ -11,7 +11,7 @@ def select_server_for_settings_keyboard(servers):
     builder.adjust(2)
     builder.row(
         InlineKeyboardButton(
-            text="⬅️ Назад",
+            text="⬅️ Back",
             callback_data="back_to_server_manager"
         )
     )
@@ -20,12 +20,22 @@ def select_server_for_settings_keyboard(servers):
 def server_settings_menu_keyboard(server_id):
     builder = InlineKeyboardBuilder()
     builder.button(
-        text="➕ Добавить адаптер",
+        text="Add",
         callback_data=f"add_adapter_{server_id}"
     )
     builder.button(
-        text="⬅️ Назад",
-        callback_data="settings_server_menu"
+        text="Delete",
+        callback_data=f"delete_adapter_{server_id}"
     )
-    builder.adjust(1)
+    builder.button(
+        text="Update",
+        callback_data=f"update_adapter_{server_id}"
+    )
+    builder.adjust(3)
+    builder.row(
+        InlineKeyboardButton(
+            text="⬅️ Back",
+            callback_data="settings_server_menu"
+        )
+    )
     return builder.as_markup()

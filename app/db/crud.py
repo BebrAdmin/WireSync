@@ -41,7 +41,7 @@ async def create_user(user_data: dict):
         await session.commit()
         await session.refresh(user)
         return user
-    
+
 async def create_server_api_data(api_data: dict):
     async with AsyncSessionLocal() as session:
         api_entry = ServerAPIData(**api_data)
@@ -56,7 +56,27 @@ async def get_server_api_data_by_server_id(server_id: int):
             select(ServerAPIData).where(ServerAPIData.server_id == server_id)
         )
         return result.scalar_one_or_none()
-    
+
+async def get_server_api_data_by_server_id_and_tg_id(server_id: int, tg_id: int):
+    async with AsyncSessionLocal() as session:
+        result = await session.execute(
+            select(ServerAPIData).where(
+                ServerAPIData.server_id == server_id,
+                ServerAPIData.tg_id == tg_id
+            )
+        )
+        return result.scalar_one_or_none()
+
+async def get_server_api_data_by_server_id_and_user_id(server_id: int, user_id: int):
+    async with AsyncSessionLocal() as session:
+        result = await session.execute(
+            select(ServerAPIData).where(
+                ServerAPIData.server_id == server_id,
+                ServerAPIData.user_id == user_id
+            )
+        )
+        return result.scalar_one_or_none()
+
 async def get_user_by_tg_id(tg_id: int):
     async with AsyncSessionLocal() as session:
         result = await session.execute(
@@ -70,21 +90,21 @@ async def get_user_by_email(email: str):
             select(User).where(User.email == email)
         )
         return result.scalar_one_or_none()
-    
+
 async def set_user_registered(tg_id: int):
     async with AsyncSessionLocal() as session:
         await session.execute(
             update(User).where(User.tg_id == tg_id).values(is_registered=True)
         )
         await session.commit()
-        
+
 async def set_user_authenticated(tg_id: int, value: bool = True):
     async with AsyncSessionLocal() as session:
         await session.execute(
-            update(User).where(User.tg_id == tg_id).values(authenticated=value)
+            update(User).where(User.tg_id == tg_id).values(is_authenticated=value)
         )
         await session.commit()
-        
+
 async def delete_server_and_api_data(server_id: int):
     async with AsyncSessionLocal() as session:
         await session.execute(
@@ -93,27 +113,17 @@ async def delete_server_and_api_data(server_id: int):
         await session.execute(
             delete(Server).where(Server.id == server_id)
         )
-        await session.commit()        
+        await session.commit()
 
-async def get_server_api_data_by_server_id_and_tg_id(server_id: int, tg_id: int):
-    async with AsyncSessionLocal() as session:
-        result = await session.execute(
-            select(ServerAPIData).where(
-                ServerAPIData.server_id == server_id,
-                ServerAPIData.tg_id == tg_id
-            )
-        )
-        return result.scalar_one_or_none()
-    
 async def get_server_by_id(server_id: int):
     async with AsyncSessionLocal() as session:
         return await session.get(Server, server_id)
-    
+
 async def get_admin_api_data_for_server(server_id: int):
     async with AsyncSessionLocal() as session:
         stmt = (
             select(ServerAPIData)
-            .join(User, ServerAPIData.tg_id == User.tg_id)
+            .join(User, ServerAPIData.user_id == User.id)
             .where(
                 ServerAPIData.server_id == server_id,
                 User.is_admin == True
@@ -122,7 +132,7 @@ async def get_admin_api_data_for_server(server_id: int):
         )
         result = await session.execute(stmt)
         return result.scalar_one_or_none()
-    
+
 # --- UserServerAccess CRUD ---
 
 async def add_user_server_access(user_id: int, server_id: int):
@@ -169,11 +179,13 @@ async def remove_user_server_access(user_id: int, server_id: int):
 
 # --- Invite CRUD ---
 
-async def create_invite(code: str, server_ids: list):
+async def create_invite(code: str, server_ids: list, is_admin: bool = False, admin_tg_id: int = None):
     async with AsyncSessionLocal() as session:
         invite = Invite(
             code=code,
-            server_ids=server_ids
+            server_ids=server_ids,
+            is_admin=is_admin,
+            admin_tg_id=admin_tg_id 
         )
         session.add(invite)
         await session.commit()
@@ -218,3 +230,10 @@ async def get_active_invites():
             select(Invite).where(Invite.is_active == True)
         )
         return result.scalars().all()
+    
+async def get_invite_by_used_by(user_id: int):
+    async with AsyncSessionLocal() as session:
+        result = await session.execute(
+            select(Invite).where(Invite.used_by == user_id)
+        )
+        return result.scalar_one_or_none()

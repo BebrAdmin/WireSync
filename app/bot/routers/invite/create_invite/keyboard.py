@@ -1,6 +1,17 @@
 from aiogram.types import InlineKeyboardButton
 from aiogram.utils.keyboard import InlineKeyboardBuilder
 
+def select_admin_keyboard():
+    builder = InlineKeyboardBuilder()
+    builder.row(
+        InlineKeyboardButton(text="Yes", callback_data="invite_admin_yes"),
+        InlineKeyboardButton(text="No", callback_data="invite_admin_no"),
+    )
+    builder.row(
+        InlineKeyboardButton(text="Cancel", callback_data="invite_create_cancel"),
+    )
+    return builder.as_markup()
+
 def select_servers_keyboard(servers, selected_ids):
     builder = InlineKeyboardBuilder()
     for server in servers:

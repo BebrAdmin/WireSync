@@ -6,7 +6,7 @@ from aiogram.types import CallbackQuery
 from aiogram.fsm.context import FSMContext
 from aiogram.filters import StateFilter
 from app.db import get_all_servers, create_invite, get_invite_by_code, get_user_by_tg_id
-from .keyboard import select_servers_keyboard
+from .keyboard import select_servers_keyboard, select_admin_keyboard
 from .fsm import CreateInviteState
 
 logger = logging.getLogger("invite_create")
@@ -27,10 +27,20 @@ async def start_create_invite(callback: CallbackQuery, state: FSMContext):
         await callback.answer("Access denied. Admins only.", show_alert=True)
         return
 
+    await state.set_state(CreateInviteState.select_admin)
+    await callback.message.edit_text(
+        "Should the user become admin when registering with this invite code?",
+        reply_markup=select_admin_keyboard()
+    )
+
+@router.callback_query(StateFilter(CreateInviteState.select_admin), F.data.in_(["invite_admin_yes", "invite_admin_no"]))
+async def set_invite_admin_flag(callback: CallbackQuery, state: FSMContext):
+    is_admin = callback.data == "invite_admin_yes"
+    await state.update_data(is_admin=is_admin)
     servers = await get_all_servers()
     await state.set_state(CreateInviteState.select_servers)
     await state.update_data(selected_servers=[])
-    logger.info(f"Admin {callback.from_user.id} started invite creation")
+    logger.info(f"Admin {callback.from_user.id} set is_admin={is_admin} for new invite")
     if not servers:
         await callback.message.edit_text(
             "No connected servers available.\nYou can still create an invite code (it will not grant access to any server).",
@@ -41,6 +51,14 @@ async def start_create_invite(callback: CallbackQuery, state: FSMContext):
         "Select servers for the invite code:",
         reply_markup=select_servers_keyboard(servers, [])
     )
+
+@router.callback_query(StateFilter(CreateInviteState.select_admin), F.data == "invite_create_cancel")
+async def cancel_create_invite_admin(callback: CallbackQuery, state: FSMContext):
+    await state.clear()
+    logger.info(f"Admin {callback.from_user.id} cancelled invite creation at is_admin step")
+    await callback.answer("Invite creation cancelled.")
+    from app.bot.routers.invite.handler import show_invite_manager_menu
+    await show_invite_manager_menu(callback)
 
 @router.callback_query(StateFilter(CreateInviteState.select_servers), F.data.startswith("accept_server_"))
 async def toggle_server(callback: CallbackQuery, state: FSMContext):
@@ -102,6 +120,7 @@ async def confirm_create_invite(callback: CallbackQuery, state: FSMContext):
 
     data = await state.get_data()
     selected = data.get("selected_servers", [])
+    is_admin = data.get("is_admin", False)
     if selected is None:
         selected = []
     for _ in range(10):
@@ -112,9 +131,9 @@ async def confirm_create_invite(callback: CallbackQuery, state: FSMContext):
         logger.error("Failed to generate unique invite code after 10 attempts")
         await callback.answer("Failed to generate invite code.", show_alert=True)
         return
-    invite = await create_invite(code, selected)
-    logger.info(f"Invite code {code} created by admin {callback.from_user.id} for servers {selected}")
+    invite = await create_invite(code, selected, is_admin=is_admin, admin_tg_id=callback.from_user.id)
+    logger.info(f"Invite code {code} created by admin {callback.from_user.id} for servers {selected}, is_admin={is_admin}")
     await state.clear()
-    await callback.answer("✅Invite code created!")
+    await callback.answer("✅ Invite code created!")
     from app.bot.routers.invite.handler import show_invite_manager_menu
     await show_invite_manager_menu(callback)

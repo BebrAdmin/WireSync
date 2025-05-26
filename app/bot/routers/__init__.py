@@ -4,6 +4,8 @@ from .server_manager import (
     server_manager_router,
     server_settings_router,
     adapter_create_router,
+    adapter_delete_router,
+    adapter_update_router,
 )
 from .server_manager.server_register import router as server_register_router
 from .server_manager.delete_server import router as delete_server_router
@@ -21,6 +23,8 @@ __all__ = [
     "server_manager_router",
     "server_settings_router",
     "adapter_create_router",
+    "adapter_delete_router",
+    "adapter_update_router",
     "server_register_router",
     "delete_server_router",  
     "peer_manager_router",

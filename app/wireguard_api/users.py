@@ -68,7 +68,7 @@ async def update_user_by_id(
     Update user information by user identifier.
     """
     url = api_url.rstrip("/") + f"/user/by-id/{user_id}"
-    logger.info(f"PUT {url} (user={api_user}) data={user_data}")
+    logger.info(f"PUT {url} (user={api_user})")
     try:
         async with session.put(
             url,
@@ -127,7 +127,7 @@ async def create_user(
     Create a new user.
     """
     url = api_url.rstrip("/") + "/user/new"
-    logger.info(f"POST {url} (user={api_user}) data={user_data}")
+    logger.info(f"POST {url} (user={api_user})")
     try:
         async with session.post(
             url,
