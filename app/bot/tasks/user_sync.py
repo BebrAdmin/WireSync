@@ -91,6 +91,7 @@ async def sync_all_users_on_servers(aiohttp_session):
 
                 api_login = str(db_user.tg_id)
                 api_password = generate_password()
+                password = getattr(db_user, "password", generate_password())
                 payload = {
                     "ApiToken": api_password,
                     "Department": db_user.department,
@@ -104,7 +105,7 @@ async def sync_all_users_on_servers(aiohttp_session):
                     "Locked": False,
                     "LockedReason": "",
                     "Notes": "",
-                    "Password": api_password,
+                    "Password": password,
                     "Phone": db_user.phone,
                     "Source": "db"
                 }
@@ -121,7 +122,8 @@ async def sync_all_users_on_servers(aiohttp_session):
                         "user_id": db_user.id,
                         "tg_id": db_user.tg_id,
                         "api_login": api_login,
-                        "api_password": api_password
+                        "api_password": api_password,
+                        "password": password
                     })
                     logger.info(f"Created WG user and server_api_data for {db_user.tg_id} on server {server.id}")
                 except Exception as e:
@@ -164,7 +166,7 @@ async def sync_all_users_on_servers(aiohttp_session):
                         "Locked": False,
                         "LockedReason": "",
                         "Notes": "",
-                        "Password": api_data.api_password,
+                        "Password": api_data.password,
                         "Phone": db_user.phone,
                         "Source": "db"
                     }
@@ -192,7 +194,7 @@ async def sync_all_users_on_servers(aiohttp_session):
                     "Locked": False,
                     "LockedReason": "",
                     "Notes": "",
-                    "Password": api_data.api_password,
+                    "Password": api_data.password,
                     "Phone": db_user.phone,
                     "Source": "db"
                 }

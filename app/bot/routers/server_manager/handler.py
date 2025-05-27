@@ -5,6 +5,7 @@ from .keyboard import server_manager_keyboard
 from app.bot.routers.main.keyboard import main_menu_keyboard
 from app.bot.tasks.server_health import check_all_servers
 import zoneinfo
+from aiogram.exceptions import TelegramBadRequest
 
 router = Router()
 
@@ -15,7 +16,7 @@ def status_emoji(status: str) -> str:
 
 def format_time(dt):
     if not dt:
-        return "никогда"
+        return "never"
     local_tz = zoneinfo.ZoneInfo("Europe/Moscow")  
     if dt.tzinfo is None:
         from datetime import timezone
@@ -23,31 +24,44 @@ def format_time(dt):
     dt_local = dt.astimezone(local_tz)
     return dt_local.strftime("%d.%m.%Y %H:%M:%S")
 
-@router.callback_query(F.data == "server_manager")
-async def open_server_manager(callback: CallbackQuery, session):
-    await check_all_servers(session)
+async def render_server_manager_message(callback: CallbackQuery):
     servers = await get_all_servers()
     if servers:
         servers_text = "\n".join(
             f"{status_emoji(server.status)} <b>{server.name}</b>\n"
-            f"Последняя проверка: <i>{format_time(server.last_checked)}</i>"
+            f"Last check: <i>{format_time(server.last_checked)}</i>"
             for server in servers
         )
         text = (
-            "Меню управления серверами:\n\n"
+            "Server Management Menu:\n\n"
             f"{servers_text}"
         )
     else:
-        text = "Меню управления серверами:\n\n<b>Серверов пока нет.</b>"
-    await callback.message.edit_text(
-        text,
-        reply_markup=server_manager_keyboard(),
-        parse_mode="HTML"
-    )
+        text = "Server Management Menu:\n\n<b>No servers available yet.</b>"
+    return text, server_manager_keyboard()
+
+@router.callback_query(F.data == "server_manager")
+async def open_server_manager(callback: CallbackQuery, session):
+    await check_all_servers(session)
+    text, markup = await render_server_manager_message(callback)
+    try:
+        if (
+            callback.message.text == text
+            and callback.message.reply_markup == markup
+        ):
+            return
+        await callback.message.edit_text(
+            text,
+            reply_markup=markup,
+            parse_mode="HTML"
+        )
+    except TelegramBadRequest as e:
+        if "message is not modified" not in str(e):
+            raise
 
 @router.callback_query(F.data == "sync_servers")
 async def sync_servers(callback: CallbackQuery, session):
-    await callback.answer("✅ Успешно синхронизировано!")
+    await callback.answer("✅ Successfully synchronized!")
     await check_all_servers(session)
     await open_server_manager(callback, session)
 

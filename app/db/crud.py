@@ -237,3 +237,8 @@ async def get_invite_by_used_by(user_id: int):
             select(Invite).where(Invite.used_by == user_id)
         )
         return result.scalar_one_or_none()
+
+async def get_all_users():
+    async with AsyncSessionLocal() as session:
+        result = await session.execute(select(User))
+        return result.scalars().all()

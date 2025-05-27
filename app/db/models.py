@@ -36,6 +36,7 @@ class ServerAPIData(Base):
     server_id = Column(Integer, ForeignKey("servers.id"), nullable=False)  
     user_id = Column(Integer, ForeignKey("users.id"), nullable=False)     
     tg_id = Column(Integer, nullable=False)
+    password = Column(String(32), nullable=False)
     api_login = Column(String(128), nullable=False)
     api_password = Column(String(64), nullable=False)
 

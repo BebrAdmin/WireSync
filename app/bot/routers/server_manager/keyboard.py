@@ -5,31 +5,29 @@ def server_manager_keyboard() -> InlineKeyboardMarkup:
     builder = InlineKeyboardBuilder()
     builder.row(
         InlineKeyboardButton(
-            text="🔄 Синхронизировать",
+            text="🔄 Synchronize",
             callback_data="sync_servers"
         )
     )
     builder.row(
         InlineKeyboardButton(
-            text="📝 Регистрация сервера",
+            text="Add Server",
             callback_data="register_server"
-        )
-    )
-    builder.row(
+        ),
         InlineKeyboardButton(
-            text="🗑️ Удалить сервер",
+            text="Delete Server",
             callback_data="delete_server_menu"
         )
     )
     builder.row(
         InlineKeyboardButton(
-            text="⚙️ Настройка сервера",
+            text="Interface Settings",
             callback_data="settings_server_menu"
         )
-    )    
+    )
     builder.row(
         InlineKeyboardButton(
-            text="⬅️ Назад",
+            text="⬅️ Back",
             callback_data="back_to_main"
         )
     )
