@@ -10,16 +10,21 @@ router = Router()
 
 def active_invites_text(invites, servers_dict):
     if not invites:
-        return "No active invites."
+        return "<i>No active invites.</i>"
     lines = []
     for invite in invites:
-        server_ids = invite.server_ids or []
-        if server_ids:
-            names = [servers_dict.get(sid, str(sid)) for sid in server_ids]
-            servers_str = "/".join(names)
+        if getattr(invite, "is_admin", False):
+            servers_str = "<i>(admin)</i>"
         else:
-            servers_str = "no servers"
-        lines.append(f"🔹 <code>{invite.code}</code> ({servers_str})\n")
+            server_ids = invite.server_ids or []
+            if server_ids:
+                names = [servers_dict.get(sid, str(sid)) for sid in server_ids]
+                servers_str = "<i>(" + ", ".join(names) + ")</i>"
+            else:
+                servers_str = "<i>(no servers)</i>"
+        lines.append(
+            f"• <code>{invite.code}</code> {servers_str}"
+        )
     return "\n".join(lines)
 
 @router.callback_query(F.data == "invite_manager_menu")
@@ -35,7 +40,8 @@ async def show_invite_manager_menu(callback: CallbackQuery):
     servers_dict = {s.id: s.name for s in servers}
     logger.info(f"Admin {callback.from_user.id} opened Invite Manager")
     await callback.message.edit_text(
-        f"Active invites:\n{active_invites_text(invites, servers_dict)}",
+        "<b>Active invite codes:</b>\n\n"
+        f"{active_invites_text(invites, servers_dict)}",
         reply_markup=invite_manager_menu_keyboard(),
         parse_mode="HTML"
     )

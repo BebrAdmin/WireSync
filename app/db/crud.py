@@ -111,6 +111,9 @@ async def delete_server_and_api_data(server_id: int):
             delete(ServerAPIData).where(ServerAPIData.server_id == server_id)
         )
         await session.execute(
+            delete(UserServerAccess).where(UserServerAccess.server_id == server_id)
+        )
+        await session.execute(
             delete(Server).where(Server.id == server_id)
         )
         await session.commit()

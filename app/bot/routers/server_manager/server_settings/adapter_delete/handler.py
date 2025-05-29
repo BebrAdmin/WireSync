@@ -146,9 +146,9 @@ async def adapter_delete_select(callback: CallbackQuery, session):
 
     text = (
         f"<b>Are you sure you want to delete the following adapter?</b>\n\n"
-        f"<b>{name}</b> [{identifier}]\n"
+        f"<blockquote>{name} [{identifier}]\n"
         f"👥 {total_peers} Peers\n"
-        f"{metrics_str}\n\n"
+        f"{metrics_str}</blockquote>\n\n"
         f"ℹ️ <i>All peers for this adapter will be permanently deleted.</i>"
     )
     await callback.message.edit_text(
