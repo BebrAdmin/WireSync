@@ -21,12 +21,17 @@ from .users import (
     create_user,
 )
 
+from .peers import (
+    get_peer_by_id,
+)
+
 from .provisioning import (
     get_user_peer_info,
     create_peer,
     get_peer_config,
     get_peer_qr,
 )
+
 
 from .exceptions import WireGuardAPIError
 
@@ -50,4 +55,5 @@ __all__ = [
     "get_peer_config",
     "get_peer_qr",
     "WireGuardAPIError",
+    "get_peer_by_id",
 ]
