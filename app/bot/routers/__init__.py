@@ -20,6 +20,7 @@ from .invite import (
     create_invite_router,
     delete_invite_router,
 )
+from .logs_manager.handler import router as logs_manager_router
 from .cleanup import cleanup_router
 
 __all__ = [
@@ -39,5 +40,6 @@ __all__ = [
     "invite_manager_router",
     "create_invite_router",
     "delete_invite_router",
+    "logs_manager_router",
     "cleanup_router",
 ]

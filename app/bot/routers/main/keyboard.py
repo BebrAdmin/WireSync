@@ -17,6 +17,12 @@ def main_menu_keyboard(is_admin: bool = False) -> InlineKeyboardMarkup:
             callback_data="invite_manager_menu"
         )
         builder.adjust(1, 2)
+        builder.row(
+            InlineKeyboardButton(
+                text="📋 Logs Manager",
+                callback_data="logs_manager_menu"
+            )
+        )
     else:
         builder.adjust(1)
     return builder.as_markup()

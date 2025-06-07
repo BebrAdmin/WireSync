@@ -4,7 +4,7 @@ import logging
 
 from aiogram import Bot, Dispatcher
 from app.config import load_config
-# from app.logger import setup_logging  # кастомный логгер пока закомментирован
+from app.logger import setup_logging  
 
 from app.bot.routers import (
     main_router,
@@ -22,7 +22,8 @@ from app.bot.routers import (
     peer_delete_router, 
     invite_manager_router,          
     create_invite_router,           
-    delete_invite_router,        
+    delete_invite_router,
+    logs_manager_router,       
     cleanup_router, 
 )
 
@@ -34,9 +35,10 @@ from app.bot.tasks.server_health import periodic_server_check
 from app.bot.tasks.user_sync import periodic_user_sync
 
 config = load_config()
-logging.basicConfig(level=logging.INFO)  
+# logging.basicConfig(level=logging.INFO)  
+setup_logging(config.LOGGING)  
+
 logger = logging.getLogger("startup")
-# setup_logging(config.LOGGING)  # кастомный логгер пока закомментирован
 
 bot = Bot(token=config.TOKEN)
 dp = Dispatcher()
@@ -71,7 +73,8 @@ async def main():
         peer_delete_router, 
         invite_manager_router,
         create_invite_router,           
-        delete_invite_router,        
+        delete_invite_router,
+        logs_manager_router,    
         cleanup_router,
     ]:
         dp.include_router(router)
