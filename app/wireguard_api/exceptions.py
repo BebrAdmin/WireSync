@@ -1,0 +1,2 @@
+class WireGuardAPIError(Exception):
+    pass

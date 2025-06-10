@@ -1,0 +1,63 @@
+version: '3.8'
+
+services:
+  wiresync-postgres:
+    image: postgres:17.5
+    container_name: wiresync-postgres
+    restart: always
+    env_file:
+      - .env
+    environment:
+      POSTGRES_USER: ${POSTGRES_USER}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD}
+      POSTGRES_DB: ${POSTGRES_DB}
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+    networks:
+      - wiresync_network
+    healthcheck:
+      test: [ "CMD-SHELL", "pg_isready -U ${POSTGRES_USER}" ]
+      interval: 10s
+      retries: 5
+      start_period: 10s
+
+  wiresync-pgadmin:
+    image: dpage/pgadmin4:9.4
+    container_name: wiresync-pgadmin
+    restart: always
+    env_file:
+      - .env
+    environment:
+      PGADMIN_DEFAULT_EMAIL: ${PGADMIN_EMAIL}
+      PGADMIN_DEFAULT_PASSWORD: ${PGADMIN_PASSWORD}
+    volumes:
+      - pgadmin_data:/var/lib/pgadmin
+      - ./servers.json:/pgadmin4/servers.json
+    ports:
+      - "5050:80"
+    depends_on:
+      wiresync-postgres:
+        condition: service_healthy
+    networks:
+      - wiresync_network
+
+  wiresync-bot:
+    image: bebradmin/wiresync-bot
+    container_name: wiresync-bot
+    restart: unless-stopped
+    env_file:
+      - .env
+    depends_on:
+      wiresync-postgres:
+        condition: service_healthy
+    volumes:
+      - ./app/logs:/app/app/logs
+    networks:
+      - wiresync_network
+
+volumes:
+  postgres_data:
+  pgadmin_data:
+
+networks:
+  wiresync_network:

@@ -1,0 +1,13 @@
+{
+    "Servers": {
+        "1": {
+            "Name": "WireSync DB",
+            "Group": "Servers",
+            "Host": "wiresync-postgres",
+            "Port": 5432,
+            "MaintenanceDB": "wiresync_db",
+            "Username": "admin",
+            "SSLMode": "prefer"
+        }
+    }
+}
