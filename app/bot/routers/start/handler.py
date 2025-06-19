@@ -30,7 +30,11 @@ from sqlalchemy import select, update
 from app.db import AsyncSessionLocal, User
 from app.bot.routers.main.keyboard import main_menu_keyboard
 from app.bot.utils import generate_password, generate_api_token
-from app.wireguard_api.users import create_user as wg_create_user, get_user_by_id, update_user_by_id
+from app.wireguard_api.users import (
+    create_user as wg_create_user,
+    get_user_by_id,
+    update_user_by_id,
+)
 from app.bot.tasks.user_sync import sync_all_users_on_servers
 
 logger = logging.getLogger("user_register")
@@ -45,8 +49,10 @@ PROMPTS = {
     UserRegisterState.department: "<b>Registration: Department/Position</b>\nEnter your department/position:",
 }
 
+
 def format_error_block(msg: str) -> str:
     return f"<blockquote>⚠️ {msg}</blockquote>\n"
+
 
 @router.message(CommandStart())
 async def start_handler(message: Message, state: FSMContext):
@@ -54,8 +60,7 @@ async def start_handler(message: Message, state: FSMContext):
     if user and getattr(user, "is_registered", False):
         is_admin = bool(user and getattr(user, "is_admin", False))
         await message.answer(
-            "Main Menu",
-            reply_markup=main_menu_keyboard(is_admin=is_admin)
+            "Main Menu", reply_markup=main_menu_keyboard(is_admin=is_admin)
         )
         return
 
@@ -69,24 +74,28 @@ async def start_handler(message: Message, state: FSMContext):
         msg = await message.answer(
             "<b>Registration:</b>\nYou need to complete registration to access the system",
             reply_markup=registration_entry_keyboard(),
-            parse_mode="HTML"
+            parse_mode="HTML",
         )
         await state.update_data(bot_message_id=msg.message_id)
         return
 
     if is_first:
-        await create_user({
-            "tg_id": message.from_user.id,
-            "tg_name": message.from_user.full_name,
-            "is_authenticated": True,
-            "is_admin": True,
-        })
-        logger.info(f"First user {message.from_user.id} ({message.from_user.full_name}) created as admin")
+        await create_user(
+            {
+                "tg_id": message.from_user.id,
+                "tg_name": message.from_user.full_name,
+                "is_authenticated": True,
+                "is_admin": True,
+            }
+        )
+        logger.info(
+            f"First user {message.from_user.id} ({message.from_user.full_name}) created as admin"
+        )
         await state.clear()
         msg = await message.answer(
             "<b>Registration:</b>\nYou need to complete registration to access the system",
             reply_markup=registration_entry_keyboard(),
-            parse_mode="HTML"
+            parse_mode="HTML",
         )
         await state.update_data(bot_message_id=msg.message_id)
         return
@@ -95,10 +104,11 @@ async def start_handler(message: Message, state: FSMContext):
     msg = await message.answer(
         "<b>Invite Code</b>\nEnter invite code to register:",
         reply_markup=None,
-        parse_mode="HTML"
+        parse_mode="HTML",
     )
     await state.update_data(bot_message_id=msg.message_id)
     await state.set_state(UserRegisterState.password)
+
 
 @router.message(UserRegisterState.password)
 async def input_password(message: Message, state: FSMContext, bot):
@@ -110,7 +120,9 @@ async def input_password(message: Message, state: FSMContext, bot):
     invite = await get_invite_by_code(invite_code)
     error_text = ""
     if not invite or not invite.is_active:
-        error_text = format_error_block("Invalid or inactive invite code. Please try again.")
+        error_text = format_error_block(
+            "Invalid or inactive invite code. Please try again."
+        )
         full_text = error_text + PROMPTS[UserRegisterState.password]
         last_error = data.get("last_error_text")
         if last_error == full_text:
@@ -119,28 +131,33 @@ async def input_password(message: Message, state: FSMContext, bot):
             full_text,
             chat_id=message.chat.id,
             message_id=bot_message_id,
-            parse_mode="HTML"
+            parse_mode="HTML",
         )
         await state.update_data(last_error_text=full_text)
         return
 
-    await set_invite_used(invite.id, message.from_user.id)
-    await state.update_data(invite_code=invite_code, last_error_text=None)
-
     user = await get_user_by_tg_id(message.from_user.id)
     is_admin = bool(getattr(invite, "is_admin", False))
-
     if not user:
-        user = await create_user({
-            "tg_id": message.from_user.id,
-            "tg_name": message.from_user.full_name,
-            "is_authenticated": True,
-            "is_admin": is_admin,
-        })
-        logger.info(f"User {message.from_user.id} ({message.from_user.full_name}) registered with invite code (is_admin={is_admin})")
+        user = await create_user(
+            {
+                "tg_id": message.from_user.id,
+                "tg_name": message.from_user.full_name,
+                "is_authenticated": True,
+                "is_admin": is_admin,
+            }
+        )
+        logger.info(
+            f"User {message.from_user.id} ({message.from_user.full_name}) registered with invite code (is_admin={is_admin})"
+        )
     else:
         await set_user_authenticated(message.from_user.id, True, is_admin=is_admin)
-        logger.info(f"User {message.from_user.id} ({message.from_user.full_name}) authenticated with invite code (is_admin={is_admin})")
+        logger.info(
+            f"User {message.from_user.id} ({message.from_user.full_name}) authenticated with invite code (is_admin={is_admin})"
+        )
+
+    await set_invite_used(invite.id, message.from_user.id)
+    await state.update_data(invite_code=invite_code, last_error_text=None)
 
     await state.clear()
     await bot.edit_message_text(
@@ -148,19 +165,23 @@ async def input_password(message: Message, state: FSMContext, bot):
         chat_id=message.chat.id,
         message_id=bot_message_id,
         reply_markup=registration_entry_keyboard(),
-        parse_mode="HTML"
+        parse_mode="HTML",
     )
     await state.update_data(bot_message_id=bot_message_id, invite_code=invite_code)
 
+
 @router.callback_query(F.data == "start_registration")
 async def start_registration(callback: CallbackQuery, state: FSMContext):
-    await state.update_data(bot_message_id=callback.message.message_id, last_error_text=None)
+    await state.update_data(
+        bot_message_id=callback.message.message_id, last_error_text=None
+    )
     await state.set_state(UserRegisterState.email)
     await callback.message.edit_text(
         PROMPTS[UserRegisterState.email],
         reply_markup=restart_keyboard(),
-        parse_mode="HTML"
+        parse_mode="HTML",
     )
+
 
 @router.message(UserRegisterState.email)
 async def input_email(message: Message, state: FSMContext, bot):
@@ -171,7 +192,9 @@ async def input_email(message: Message, state: FSMContext, bot):
     email_exists = await get_user_by_email(email)
     error_text = ""
     if not email or not re.match(EMAIL_REGEX, email) or email_exists:
-        error_text = format_error_block("Invalid email or already registered. Please try again.")
+        error_text = format_error_block(
+            "Invalid email or already registered. Please try again."
+        )
         full_text = error_text + PROMPTS[UserRegisterState.email]
         last_error = data.get("last_error_text")
         if last_error == full_text:
@@ -181,7 +204,7 @@ async def input_email(message: Message, state: FSMContext, bot):
             chat_id=message.chat.id,
             message_id=bot_message_id,
             reply_markup=restart_keyboard(),
-            parse_mode="HTML"
+            parse_mode="HTML",
         )
         await state.update_data(last_error_text=full_text)
         return
@@ -191,9 +214,10 @@ async def input_email(message: Message, state: FSMContext, bot):
     msg = await message.answer(
         PROMPTS[UserRegisterState.phone],
         reply_markup=phone_reply_keyboard(),
-        parse_mode="HTML"
+        parse_mode="HTML",
     )
     await state.update_data(bot_message_id=msg.message_id)
+
 
 @router.message(UserRegisterState.phone)
 async def input_phone(message: Message, state: FSMContext, bot):
@@ -210,9 +234,10 @@ async def input_phone(message: Message, state: FSMContext, bot):
     msg = await message.answer(
         PROMPTS[UserRegisterState.department],
         reply_markup=restart_keyboard(),
-        parse_mode="HTML"
+        parse_mode="HTML",
     )
     await state.update_data(bot_message_id=msg.message_id)
+
 
 @router.message(UserRegisterState.department)
 async def input_department(message: Message, state: FSMContext, bot):
@@ -222,7 +247,9 @@ async def input_department(message: Message, state: FSMContext, bot):
     await message.delete()
     error_text = ""
     if not department:
-        error_text = format_error_block("Department/position cannot be empty. Please try again.")
+        error_text = format_error_block(
+            "Department/position cannot be empty. Please try again."
+        )
         full_text = error_text + PROMPTS[UserRegisterState.department]
         last_error = data.get("last_error_text")
         if last_error == full_text:
@@ -232,7 +259,7 @@ async def input_department(message: Message, state: FSMContext, bot):
             chat_id=message.chat.id,
             message_id=bot_message_id,
             reply_markup=restart_keyboard(),
-            parse_mode="HTML"
+            parse_mode="HTML",
         )
         await state.update_data(last_error_text=full_text)
         return
@@ -254,10 +281,13 @@ async def input_department(message: Message, state: FSMContext, bot):
         chat_id=message.chat.id,
         message_id=bot_message_id,
         reply_markup=confirm_keyboard(),
-        parse_mode="HTML"
+        parse_mode="HTML",
     )
 
-@router.callback_query(F.data == "confirm_register", UserRegisterState.waiting_confirm_action)
+
+@router.callback_query(
+    F.data == "confirm_register", UserRegisterState.waiting_confirm_action
+)
 async def confirm_registration(callback: CallbackQuery, state: FSMContext, session):
     data = await state.get_data()
     await state.clear()
@@ -266,8 +296,7 @@ async def confirm_registration(callback: CallbackQuery, state: FSMContext, sessi
     user = await get_user_by_tg_id(callback.from_user.id)
     is_admin = bool(user and getattr(user, "is_admin", False))
     await callback.message.answer(
-        "Main Menu",
-        reply_markup=main_menu_keyboard(is_admin=is_admin)
+        "Main Menu", reply_markup=main_menu_keyboard(is_admin=is_admin)
     )
     async with AsyncSessionLocal() as db_session:
         await db_session.execute(
@@ -281,9 +310,7 @@ async def confirm_registration(callback: CallbackQuery, state: FSMContext, sessi
             )
         )
         await db_session.commit()
-    logger.info(
-        f"User {callback.from_user.id} completed registration"
-    )
+    logger.info(f"User {callback.from_user.id} completed registration")
 
     invite = await get_invite_by_code(data.get("invite_code"))
     if not invite:
@@ -298,15 +325,20 @@ async def confirm_registration(callback: CallbackQuery, state: FSMContext, sessi
     for server_id in invite.server_ids:
         server = await get_server_by_id(server_id)
         if not server:
-            logger.warning(f"Skip user_server_access for server_id={server_id}: not found")
+            logger.warning(
+                f"Skip user_server_access for server_id={server_id}: not found"
+            )
             continue
         try:
             await add_user_server_access(user.id, server_id)
             logger.info(f"Granted access: user_id={user.id} to server_id={server_id}")
         except Exception as e:
-            logger.error(f"Failed to grant access for user_id={user.id} to server_id={server_id}: {e}")
+            logger.error(
+                f"Failed to grant access for user_id={user.id} to server_id={server_id}: {e}"
+            )
 
     await sync_all_users_on_servers(session)
+
 
 @router.callback_query(F.data == "edit_register")
 async def edit_registration(callback: CallbackQuery, state: FSMContext):
@@ -314,6 +346,6 @@ async def edit_registration(callback: CallbackQuery, state: FSMContext):
     msg = await callback.message.edit_text(
         "<b>Registration:</b>\nYou need to complete registration to access the system",
         reply_markup=registration_entry_keyboard(),
-        parse_mode="HTML"
+        parse_mode="HTML",
     )
     await state.update_data(bot_message_id=msg.message_id, last_error_text=None)

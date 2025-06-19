@@ -61,7 +61,6 @@ async def check_all_servers(aiohttp_session):
             status = "error"
             logger.error(f"Server {server.name} [{server.api_url}] is unavailable: {e}")
 
-        # Update server status and last_checked in the DB
         async with AsyncSessionLocal() as db_session:
             db_server = await db_session.get(Server, server.id)
             if db_server:

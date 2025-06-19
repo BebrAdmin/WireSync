@@ -14,13 +14,15 @@ from app.bot.tasks.user_sync import sync_all_users_on_servers
 logger = logging.getLogger("user_delete")
 router = Router()
 
+
 async def get_delete_text(user_id):
     user = await get_user_by_id(user_id)
     user_server_ids = await get_servers_for_user(user.id)
     all_servers = await get_all_servers()
     servers_text = (
         ", ".join([f"{s.name}" for s in all_servers if s.id in user_server_ids])
-        if user_server_ids else "-"
+        if user_server_ids
+        else "-"
     )
     phone = getattr(user, "phone", None) or "-"
     user_info = (
@@ -36,6 +38,7 @@ async def get_delete_text(user_id):
     )
     return text
 
+
 @router.callback_query(IsAdmin(), F.data == "user_manager_delete_user")
 async def user_delete_start(callback: CallbackQuery, state: FSMContext):
     users = await get_all_users()
@@ -44,10 +47,15 @@ async def user_delete_start(callback: CallbackQuery, state: FSMContext):
     await callback.message.edit_text(
         "Select a user to delete:",
         reply_markup=users_select_keyboard(users, callback.from_user.id),
-        parse_mode="HTML"
+        parse_mode="HTML",
     )
 
-@router.callback_query(IsAdmin(), StateFilter(DeleteUserState.select_user), F.data.startswith("user_delete_select_"))
+
+@router.callback_query(
+    IsAdmin(),
+    StateFilter(DeleteUserState.select_user),
+    F.data.startswith("user_delete_select_"),
+)
 async def user_delete_select_user(callback: CallbackQuery, state: FSMContext):
     user_id = int(callback.data.replace("user_delete_select_", ""))
     user = await get_user_by_id(user_id)
@@ -58,37 +66,57 @@ async def user_delete_select_user(callback: CallbackQuery, state: FSMContext):
     await state.update_data(delete_user_id=user_id)
     text = await get_delete_text(user_id)
     await callback.message.edit_text(
-        text,
-        reply_markup=confirm_delete_keyboard(),
-        parse_mode="HTML"
+        text, reply_markup=confirm_delete_keyboard(), parse_mode="HTML"
     )
 
-@router.callback_query(IsAdmin(), StateFilter(DeleteUserState.select_user), F.data == "user_delete_back")
+
+@router.callback_query(
+    IsAdmin(), StateFilter(DeleteUserState.select_user), F.data == "user_delete_back"
+)
 async def user_delete_back_to_manager(callback: CallbackQuery, state: FSMContext):
     await state.clear()
     import aiohttp
+
     async with aiohttp.ClientSession() as session:
         await show_user_manager_menu(callback, session=session)
 
-@router.callback_query(IsAdmin(), StateFilter(DeleteUserState.confirm), F.data == "user_delete_cancel")
+
+@router.callback_query(
+    IsAdmin(), StateFilter(DeleteUserState.confirm), F.data == "user_delete_cancel"
+)
 async def user_delete_cancel(callback: CallbackQuery, state: FSMContext):
     await state.clear()
     import aiohttp
+
     async with aiohttp.ClientSession() as session:
         await show_user_manager_menu(callback, session=session)
 
-@router.callback_query(IsAdmin(), StateFilter(DeleteUserState.confirm), F.data == "user_delete_confirm")
+
+@router.callback_query(
+    IsAdmin(), StateFilter(DeleteUserState.confirm), F.data == "user_delete_confirm"
+)
 async def user_delete_confirm(callback: CallbackQuery, state: FSMContext):
     data = await state.get_data()
     user_id = data["delete_user_id"]
     from app.db.models import User, UserServerAccess, ServerAPIData, Invite
-    from sqlalchemy import delete
+    from sqlalchemy import delete, update
     import aiohttp
 
     async with AsyncSessionLocal() as session:
-        await session.execute(delete(UserServerAccess).where(UserServerAccess.user_id == user_id))
-        await session.execute(delete(ServerAPIData).where(ServerAPIData.user_id == user_id))
-        await session.execute(delete(Invite).where(Invite.used_by == user_id))
+        user = await session.get(User, user_id)
+        tg_id = user.tg_id if user else None
+
+        if tg_id is not None:
+            await session.execute(
+                update(Invite).where(Invite.used_by == tg_id).values(used_by=None)
+            )
+
+        await session.execute(
+            delete(UserServerAccess).where(UserServerAccess.user_id == user_id)
+        )
+        await session.execute(
+            delete(ServerAPIData).where(ServerAPIData.user_id == user_id)
+        )
         await session.execute(delete(User).where(User.id == user_id))
         await session.commit()
         logger.info(f"User {user_id} was deleted by admin {callback.from_user.id}")

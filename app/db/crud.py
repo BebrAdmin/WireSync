@@ -224,12 +224,12 @@ async def get_invite_by_code(code: str):
         )
         return result.scalar_one_or_none()
 
-async def set_invite_used(invite_id: int, user_id: int):
+async def set_invite_used(invite_id: int, tg_id: int):
     async with AsyncSessionLocal() as session:
         await session.execute(
             update(Invite)
             .where(Invite.id == invite_id)
-            .values(used_by=user_id, is_active=False)
+            .values(used_by=tg_id, is_active=False)
         )
         await session.commit()
 
