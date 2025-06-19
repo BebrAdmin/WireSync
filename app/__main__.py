@@ -39,8 +39,11 @@ from app.bot.tasks.server_health import periodic_server_check
 from app.bot.tasks.user_sync import periodic_user_sync
 
 config = load_config()
-# logging.basicConfig(level=logging.INFO)
+# Custom logger
 setup_logging(config.LOGGING)
+
+# Standard logger
+# logging.basicConfig(level=logging.INFO)
 
 logger = logging.getLogger("startup")
 
